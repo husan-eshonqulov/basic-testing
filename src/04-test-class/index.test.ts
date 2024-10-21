@@ -1,3 +1,4 @@
+import { random } from 'lodash';
 import { getBankAccount, BankAccount, SynchronizationFailedError } from '.';
 
 describe('BankAccount', () => {
@@ -41,42 +42,35 @@ describe('BankAccount', () => {
   });
 
   test('fetchBalance should return number in case if request did not failed', async () => {
+    const mockRandom = jest.fn();
+    mockRandom.mockReturnValueOnce(44).mockReturnValueOnce(1);
+
+    (random as jest.Mock) = mockRandom;
+
     const balance = await account.fetchBalance();
-    if (balance) {
-      expect(typeof balance).toBe('number');
-      expect(balance).toBeGreaterThanOrEqual(0);
-      expect(balance).toBeLessThanOrEqual(100);
-    } else {
-      expect(balance).toBeNull();
-    }
+
+    expect(balance).toBe(44);
   });
 
   test('should set new balance if fetchBalance returned number', async () => {
-    try {
-      await account.synchronizeBalance();
-      const newBalance = account.getBalance();
+    const mockRandom = jest.fn();
+    mockRandom.mockReturnValueOnce(36).mockReturnValueOnce(1);
 
-      expect(typeof newBalance).toBe('number');
-      expect(newBalance).toBeGreaterThanOrEqual(0);
-      expect(newBalance).toBeLessThanOrEqual(100);
-    } catch (err) {
-      expect(err).toBeInstanceOf(SynchronizationFailedError);
-    }
+    (random as jest.Mock) = mockRandom;
+
+    await account.synchronizeBalance();
+
+    expect(account.getBalance()).toBe(36);
   });
 
   test('should throw SynchronizationFailedError if fetchBalance returned null', async () => {
-    let didThrow = false;
+    const mockRandom = jest.fn();
+    mockRandom.mockReturnValueOnce(91).mockReturnValueOnce(0);
 
-    for (let i = 0; i <= 100; i++) {
-      try {
-        await account.synchronizeBalance();
-      } catch (err) {
-        if (err instanceof SynchronizationFailedError) {
-          didThrow = true;
-        }
-      }
-    }
+    (random as jest.Mock) = mockRandom;
 
-    expect(didThrow).toBe(true);
+    await expect(account.synchronizeBalance()).rejects.toBeInstanceOf(
+      SynchronizationFailedError,
+    );
   });
 });
